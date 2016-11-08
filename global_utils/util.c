@@ -1,9 +1,12 @@
 #include "util.h"
 
-const char* VALID_USER_NAME = "10001";
-const char* USER_NAME_TAKEN = "10010";
+const char* VALID_USER_NAME = "00001";
+const char* USER_NAME_TAKEN = "00010";
 
-const char* IP_ALREADY_HAS_ACCOUNT = "10011";
+const char* IP_ALREADY_HAS_ACCOUNT = "00011";
+
+const char* USER_NAME_REGISTERED = "00100";
+const char* ERROR_REGISTERING_USER_NAME = "00101";
 
 
 void Read(int fd, void * buffer, int bytes) {

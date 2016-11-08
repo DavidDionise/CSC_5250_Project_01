@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
 			c_list.head = 0;
 			c_list.tail = 0;
 
-			handleClientCommand(&new_socket, client_addr, &c_list);
+			handleClientCommand(new_socket, client_addr, &c_list);
 			exit(0);
 		}
 

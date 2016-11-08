@@ -64,14 +64,17 @@ void handlePeer() {
 }
 
 void registerUser(int fd) {
-	void * buffer[MAX_SERVER_RESPONSE_LENGTH];
+	char buffer[MAX_SERVER_RESPONSE_LENGTH];
 	bzero(buffer, MAX_SERVER_RESPONSE_LENGTH); 
 
 	Write(fd, "reg", 4);
 	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
 
 	// Check if user has already registered
-	if(memcmp(IP_ALREADY_HAS_ACCOUNT, buffer, R_LEN) != 0) {
+	if(strcmp(IP_ALREADY_HAS_ACCOUNT, buffer) != 0) {
+
+		printf("%s\n", buffer);
+
 		bzero(buffer, MAX_SERVER_RESPONSE_LENGTH);
 		char * user_name = getLine();	
 
@@ -80,16 +83,29 @@ void registerUser(int fd) {
 
 		free(user_name);
 
-		while(memcmp(buffer, USER_NAME_TAKEN, R_LEN) == 0) {
+		while(strcmp(buffer, USER_NAME_TAKEN) == 0) {
 			puts("Username already in use.");
 			puts("Enter a different username");
 
+			bzero(buffer, MAX_SERVER_RESPONSE_LENGTH);
 			user_name = getLine();
 
 			Write(fd, user_name, strlen(user_name) + 1);
 			Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
 
 			free(user_name);
+		}
+		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
+		if(strcmp(buffer, USER_NAME_REGISTERED) == 0)
+			printf("User name has been registered with the system");
+		else if(strcmp(buffer, ERROR_REGISTERING_USER_NAME) == 0) {
+			printf("Error registering user name");
+			// Error => start function over
+			registerUser(fd);
+		}
+		else {
+			perror("Error registering name with server");
+			exit(1);
 		}
 	}
 	else {

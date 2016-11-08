@@ -17,7 +17,7 @@ void registerAccount(int fd, struct sockaddr_in client_addr,
 	}
 
 	// IP not yet registered => register client
-	int unique_username = 0;
+	int unique_username = 1;
 	char username_buffer[MAX_USERNAME_LENGTH];  
 
 	Write(fd, "Enter a user name\0", 18);
@@ -28,13 +28,13 @@ void registerAccount(int fd, struct sockaddr_in client_addr,
 	iterator = c_list->head;
 	while(iterator) {
 		if(strcmp(iterator->username, username_buffer) == 0) {
-			unique_username = 1;
+			unique_username = 0;
 			break;
 		}
 	}
 
 	while(!unique_username) {
-		Write(fd, "Username already taken. Enter a new username\n\0", 47);
+		Write(fd, USER_NAME_TAKEN, R_LEN);
 
 		unique_username = 0;
 		bzero(username_buffer, MAX_USERNAME_LENGTH);
@@ -70,14 +70,19 @@ void registerAccount(int fd, struct sockaddr_in client_addr,
 		c_list->tail->next = new_user;
 		c_list->tail = new_user;
 	}
+	iterator = c_list->head;
+	while(iterator) {
+		printf("Name = %s\n", iterator->username);
+		iterator = iterator->next;
+	}
 }
 
 void handleClientCommand(int fd, struct sockaddr_in client_addr,
 	struct clients_list * c_list) {
-	Write(fd, "test", 4);
+
 	char buffer[MAX_COMMAND_LENGTH];
 
-	if(read(*fd, buffer, MAX_COMMAND_LENGTH) < 0) {
+	if(read(fd, buffer, MAX_COMMAND_LENGTH) < 0) {
 		perror("Error reading command");
 	}
 	else {
