@@ -4,17 +4,14 @@
 #include <sys/socket.h>
 #include <strings.h>
 
-#include "../util/util.h"
-
-#define MAX_READ_LENGTH 2096
-
+#include "server_util/util.h"
 
 int main(int argc, char* argv[]) {
 	if (argc != 2) {
 		perror("Must include port number");
 		exit(1);
 	}
-
+	
 	int socket_fd, new_socket;
 	int port_number = atoi(argv[1]);
 	pid_t pid;
@@ -40,15 +37,14 @@ int main(int argc, char* argv[]) {
 
 	puts("Server Starting");
 
-	if(listen(socket_fd, 10) < 0) {
+	if(listen(socket_fd, 32) < 0) {
 		perror("Error initializing listen");
 		exit(1);
 	}
 	
-	int len;
 	while(1){
 		if ((new_socket = accept(socket_fd, (struct sockaddr *)&client_addr, 
-		(socklen_t*)&client_addr_length)) < 0) {
+			(socklen_t*)&client_addr_length)) < 0) {
 			perror("Error accepting client");
 			exit(1);
 		}
@@ -57,17 +53,13 @@ int main(int argc, char* argv[]) {
 
 		// Child process
 		if(pid == 0) {
-			char read_buffer[MAX_READ_LENGTH];
 
-			if((len = read(new_socket, read_buffer, MAX_READ_LENGTH)) < 0) {
-				perror("Error reading from client\n");
-				exit(1);
-			}
-		
-			if ((write(new_socket, r_str, len)) < 0) {
-				perror("Error writing to client\n");
-				exit(1);
-			}
+			// Initialize client data structure 
+			struct clients_list c_list;
+			c_list.head = 0;
+			c_list.tail = 0;
+
+			handleClientCommand(&new_socket, client_addr, &c_list);
 			exit(0);
 		}
 

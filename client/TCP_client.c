@@ -10,7 +10,7 @@
 #include <math.h>
 #include <netdb.h>
 
-#include "../util/util.h"
+#include "client_util/util.h"
 
 #define MAX_READ_LENGTH 2048
 
@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 	char read_buffer[MAX_READ_LENGTH];
 	int length, read_length;
 	
-	if(pid = fork() < 0) {
+	/*if(pid = fork() < 0) {
 		perror("Error forking new process");
 		exit(1);	
 	}
@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 	// Child process
 	else if(pid == 0) {
 		handlePeer();
-	}
+	}*/
 	
 	while(1) {
 		socket_fd = socket(AF_INET, SOCK_STREAM, 0);	
@@ -55,15 +55,7 @@ int main(int argc, char* argv[]) {
 
 		printMenu();
 
-		if((write(socket_fd, message, length + 1)) < 0) {
-			perror("Error writing to server.");
-			exit(1);
-		}
-
-		if((read_length = read(socket_fd, read_buffer, length + 1)) < 0) {
-			perror("Error reading from server.");
-			exit(1);
-		}
+		handleCommand(socket_fd);
 
 		close(socket_fd);
 	}
