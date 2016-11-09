@@ -46,11 +46,10 @@ struct clients_list {
 /**************************************************/
 
 // Interprets the command entered from a client
-void handleClientCommand(int fd, struct sockaddr_in client_addr,
-	struct clients_list * c_list);
+void * handleClientCommand(void * args);
 
 // Registers a users account into server
-void registerAccount(int fd, struct sockaddr_in client_addr,
+void registerAccount(int fd, struct sockaddr_in * client_addr,
 	struct clients_list * c_list);
 
 #endif

@@ -1,9 +1,8 @@
-
 #include <stdio.h>
-#include <sys/wait.h>
 #include <sys/socket.h>
-#include <strings.h>
+#include <pthread.h>
 
+#include "../global_utils/util.h"
 #include "server_util/util.h"
 
 int main(int argc, char* argv[]) {
@@ -12,11 +11,12 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 	
+	// Initialize socket
 	int socket_fd, new_socket;
 	int port_number = atoi(argv[1]);
-	pid_t pid;
 
 	struct sockaddr_in  server_addr, client_addr;
+	int client_addr_length = sizeof(client_addr);
 
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(port_number);
@@ -33,14 +33,17 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}	
 
-	int client_addr_length = sizeof(client_addr);
-
-	puts("Server Starting");
+	// Initialize client data structure 
+	struct clients_list c_list;
+	c_list.head = 0;
+	c_list.tail = 0;
 
 	if(listen(socket_fd, 32) < 0) {
 		perror("Error initializing listen");
 		exit(1);
 	}
+
+	printf("Server Listening on Port %s\n", argv[1]);
 	
 	while(1){
 		if ((new_socket = accept(socket_fd, (struct sockaddr *)&client_addr, 
@@ -49,23 +52,21 @@ int main(int argc, char* argv[]) {
 			exit(1);
 		}
 
-		pid = fork();
+		// Initialize thread
+		pthread_t tid;
+		pthread_attr_t attr;
 
-		// Child process
-		if(pid == 0) {
+		pthread_attr_init(&attr);
 
-			// Initialize client data structure 
-			struct clients_list c_list;
-			c_list.head = 0;
-			c_list.tail = 0;
+		// Set thread as detached
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-			handleClientCommand(new_socket, client_addr, &c_list);
-			exit(0);
-		}
+		struct args args_list;
+		args_list.socket_fd = new_socket;
+		args_list.client_addr = &client_addr;
+		args_list.c_list = &c_list;
 
-		// Error forking
-		else if(pid < 0)
-			perror("Error forking new process.");
+		pthread_create(&tid, &attr, &handleClientCommand, (void*)&args_list);
 	}
 
 	close(socket_fd);

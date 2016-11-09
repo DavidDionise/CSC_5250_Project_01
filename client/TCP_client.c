@@ -28,6 +28,8 @@ int main(int argc, char* argv[]) {
 	
 	char read_buffer[MAX_READ_LENGTH];
 	int length, read_length;
+
+	int deregistering;
 	
 	/*if(pid = fork() < 0) {
 		perror("Error forking new process");
@@ -39,7 +41,7 @@ int main(int argc, char* argv[]) {
 		handlePeer();
 	}*/
 	
-	while(1) {
+	while(!deregistering) {
 		socket_fd = socket(AF_INET, SOCK_STREAM, 0);	
 
 		// Initialize socket address
@@ -55,7 +57,7 @@ int main(int argc, char* argv[]) {
 
 		printMenu();
 
-		handleCommand(socket_fd);
+		handleCommand(socket_fd, &deregistering);
 
 		close(socket_fd);
 	}

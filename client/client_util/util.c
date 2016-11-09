@@ -43,20 +43,22 @@ char* getIP(char* domain_name) {
 }
 
 void printMenu() {
-	puts("******* FTP CLIENT ********");
+	printf("\n\n");
+	puts("********************** FTP CLIENT ***********************");
 	printf("\n\n");
 	puts("Enter one of the following commands :");
 	printf("\n");
 
 	puts("reg ..... Register account with server");
-	puts("dereg ... Deregister account");
+	puts("unreg ... Uregister account");
 	puts("down .... Download file from another user");
 	puts("up ...... Upload file to make available for downloading");
 	puts("list .... List available files in server");
 	puts("quit .... Quit ftp");
 	puts("help .... Re-print instructins");
 	printf("\n");
-	puts("****************************");
+	puts("**********************************************************");
+	printf("\n\n");
 }
 
 void handlePeer() {
@@ -67,13 +69,13 @@ void registerUser(int fd) {
 	char buffer[MAX_SERVER_RESPONSE_LENGTH];
 	bzero(buffer, MAX_SERVER_RESPONSE_LENGTH); 
 
-	Write(fd, "reg", 4);
+	Write(fd, REGISTER_USER, R_LEN);
 	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
 
 	// Check if user has already registered
 	if(strcmp(IP_ALREADY_HAS_ACCOUNT, buffer) != 0) {
 
-		printf("%s\n", buffer);
+		puts("Enter a user name :\n");
 
 		bzero(buffer, MAX_SERVER_RESPONSE_LENGTH);
 		char * user_name = getLine();	
@@ -85,7 +87,7 @@ void registerUser(int fd) {
 
 		while(strcmp(buffer, USER_NAME_TAKEN) == 0) {
 			puts("Username already in use.");
-			puts("Enter a different username");
+			puts("Enter a different username : \n");
 
 			bzero(buffer, MAX_SERVER_RESPONSE_LENGTH);
 			user_name = getLine();
@@ -95,13 +97,9 @@ void registerUser(int fd) {
 
 			free(user_name);
 		}
-		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
-		if(strcmp(buffer, USER_NAME_REGISTERED) == 0)
+
+		if(strcmp(buffer, USER_NAME_REGISTERED) == 0) {
 			printf("User name has been registered with the system");
-		else if(strcmp(buffer, ERROR_REGISTERING_USER_NAME) == 0) {
-			printf("Error registering user name");
-			// Error => start function over
-			registerUser(fd);
 		}
 		else {
 			perror("Error registering name with server");
@@ -113,7 +111,11 @@ void registerUser(int fd) {
 	}
 }
 
-void handleCommand(int fd) {
+void unregisterUser(int fd) {
+	
+}
+
+void handleCommand(int fd, int * deregistering) {
 	int valid_command = 0;
 	char buffer[MAX_COMMAND_LENGTH];
 
@@ -129,7 +131,7 @@ void handleCommand(int fd) {
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "dereg") == 0) {
-			puts("dereg command");
+			unregisterUser(fd);
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "down") == 0) {

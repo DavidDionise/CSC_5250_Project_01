@@ -1,26 +1,27 @@
 #include "../../global_utils/util.h"
 #include "util.h"
 
-void registerAccount(int fd, struct sockaddr_in client_addr,
+void registerAccount(int fd, struct sockaddr_in * client_addr,
 	struct clients_list * c_list) {
 
-	char* client_ip = inet_ntoa(client_addr.sin_addr);
+	char* client_ip = inet_ntoa(client_addr->sin_addr);
 	struct client_user * iterator = c_list->head; 
-	
+
 	// Check if client IP has been registered
 	while(iterator) {
 		if(strcmp(iterator->ip, client_ip) == 0) {
-			Write(fd, "IP already registered\0", 22);
+			Write(fd, IP_ALREADY_HAS_ACCOUNT, R_LEN);
 			return;
 		}
 		iterator = iterator->next;
 	}
 
 	// IP not yet registered => register client
+	Write(fd, VALID_IP, R_LEN);
+
 	int unique_username = 1;
 	char username_buffer[MAX_USERNAME_LENGTH];  
 
-	Write(fd, "Enter a user name\0", 18);
 	Read(fd, username_buffer, MAX_USERNAME_LENGTH);
 	
 	//Check if user name is unique
@@ -70,24 +71,24 @@ void registerAccount(int fd, struct sockaddr_in client_addr,
 		c_list->tail->next = new_user;
 		c_list->tail = new_user;
 	}
-	iterator = c_list->head;
-	while(iterator) {
-		printf("Name = %s\n", iterator->username);
-		iterator = iterator->next;
-	}
+	
+	// Send confirmation to client
+	Write(fd, USER_NAME_REGISTERED, R_LEN);
 }
 
-void handleClientCommand(int fd, struct sockaddr_in client_addr,
-	struct clients_list * c_list) {
+void * handleClientCommand(void * args_list) {
+	struct args * args = (struct args *)args_list;
+
+	// Unpack arguments
+	int fd = args->socket_fd;
+	struct sockaddr_in * client_addr = args->client_addr;
+	struct clients_list * c_list = args->c_list;
 
 	char buffer[MAX_COMMAND_LENGTH];
 
-	if(read(fd, buffer, MAX_COMMAND_LENGTH) < 0) {
-		perror("Error reading command");
-	}
-	else {
-		if(strcmp(buffer, "reg") == 0) {
-			registerAccount(fd, client_addr, c_list);
-		}
+	Read(fd, buffer, MAX_COMMAND_LENGTH);
+	
+	if(strcmp(buffer, REGISTER_USER) == 0) {
+		registerAccount(fd, client_addr, c_list);
 	}
 }

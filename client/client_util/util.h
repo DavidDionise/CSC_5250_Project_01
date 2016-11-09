@@ -30,7 +30,7 @@ void registerUser(int fd);
 
 // Gets the command from the user and 
 //	executes program accordingly
-void handleCommand(int fd);
+void handleCommand(int fd, int * deregistering);
 
 // Routine to manage incoming download requests
 // 	from peers
