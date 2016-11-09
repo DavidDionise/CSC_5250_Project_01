@@ -17,6 +17,7 @@ const char* IP_ALREADY_HAS_ACCOUNT = "001010";
 const char* USER_NAME_REGISTERED = "001011";
 const char* ERROR_REGISTERING_USER_NAME = "001100";
 
+const char* IP_DOES_NOT_EXIST = "001101";
 
 void Read(int fd, void * buffer, int bytes) {
 	if(read(fd, buffer, bytes) < 0) {

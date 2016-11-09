@@ -41,6 +41,8 @@ extern const char* IP_ALREADY_HAS_ACCOUNT;
 extern const char* USER_NAME_REGISTERED;
 extern const char* ERROR_REGISTERING_USER_NAME;
 
+extern const char* IP_DOES_NOT_EXIST;
+
 // Wrapper for the read() system call
 void Read(int fd, void * buffer, int bytes);
 

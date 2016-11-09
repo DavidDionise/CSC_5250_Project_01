@@ -25,7 +25,7 @@ struct files_list {
 	struct file_node* tail;
 };
 
-/**************************************************/
+/***********************************************/
 
 
 /*** LINKED LIST FOR STORING USERS IN SERVER ***/
@@ -43,7 +43,7 @@ struct clients_list {
 	struct client_user* tail;
 };
 
-/**************************************************/
+/***********************************************/
 
 // Interprets the command entered from a client
 void * handleClientCommand(void * args);
@@ -51,6 +51,11 @@ void * handleClientCommand(void * args);
 // Registers a users account into server
 void registerAccount(int fd, struct sockaddr_in * client_addr,
 	struct clients_list * c_list);
+
+// Unregisters a users account
+void unregisterAccount(int fd, struct sockaddr_in * client_addr,
+	struct clients_list * c_list);
+
 
 #endif
 

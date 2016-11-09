@@ -112,7 +112,14 @@ void registerUser(int fd) {
 }
 
 void unregisterUser(int fd) {
-	
+	char* buffer[R_LEN];
+
+	Write(fd, UNREGISTER_USER, R_LEN);
+	Read(fd, buffer, R_LEN);
+
+	if(strcmp(buffer, IP_DOES_NOT_EXIST) == 0) {
+		puts("This IP is not registered");
+	}
 }
 
 void handleCommand(int fd, int * deregistering) {
@@ -130,29 +137,33 @@ void handleCommand(int fd, int * deregistering) {
 			registerUser(fd);
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "dereg") == 0) {
+		else if(strcmp(buffer, "unreg\n") == 0) {
 			unregisterUser(fd);
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "down") == 0) {
+		else if(strcmp(buffer, "down\n") == 0) {
 			puts("down command");
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "up") == 0) {
+		else if(strcmp(buffer, "up\n") == 0) {
 			puts("up command");
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "list") == 0) {
+		else if(strcmp(buffer, "list\n") == 0) {
 			puts("list command");
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "quit") == 0) {
+		else if(strcmp(buffer, "quit\n") == 0) {
 			puts("quit command");
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "help") == 0) {
+		else if(strcmp(buffer, "help\n") == 0) {
 			puts("help command");
 			valid_command = 1;
+		}
+		else {
+			puts("ERROR : Invalid command");
+			printMenu();
 		}
 	}
 }
