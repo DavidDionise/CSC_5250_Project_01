@@ -126,36 +126,22 @@ void unregisterUser(int fd) {
 }
 
 void listUsersAndFiles(int fd) {
-	void *buffer[MAX_DATA_BUFFER_SIZE];
-
-	puts("a");
+	char buffer[MAX_SERVER_RESPONSE_LENGTH];
+	
 	Write(fd, LIST_AVAILABLE_FILES, R_LEN);
-	Read(fd, buffer, MAX_DATA_BUFFER_SIZE);
-puts("b");
+	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
 
+	Write(fd, DATA_RECEIVED, R_LEN);
 	if(strcmp(buffer, BEGIN_DATA_BUFFER_SEND) != 0) {
-		perror("Error reading data from server");
+		perror("Error getting data from server");
 		exit(1);
 	}
-puts("c");
-Write(fd, "cool", 5);
-	Read(fd, buffer, MAX_DATA_BUFFER_SIZE);
-puts("d");
-	if(strcmp(buffer, END_DATA_BUFFER_SEND) == 0) {
-		puts("No users in the system");
-		return;
-	}
 
-puts("e");
-	if(strcmp(buffer, END_DATA_BUFFER_SEND) == 0) {
-		puts("No users in system");
-	}
-	else {
-		puts("f");
-		while(strcmp(buffer, END_DATA_BUFFER_SEND) != 0) {
+	while(strcmp(buffer, END_DATA_BUFFER_SEND) != 0) {
+		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
+		Write(fd, DATA_RECEIVED, R_LEN);
+		if(strcmp(buffer, END_DATA_BUFFER_SEND) != 0)
 			printf("  %s\n", buffer);
-			Read(fd, buffer, MAX_DATA_BUFFER_SIZE);
-		}
 	}
 }
 

@@ -31,6 +31,9 @@ void registerUser(int fd);
 // Unregisters user from server
 void unregisterUser(int fd);
 
+// List users and files in the system
+void listUsersAndFiles(int fd);
+
 // Gets the command from the user and 
 //	executes program accordingly
 void handleCommand(int fd, int * deregistering);

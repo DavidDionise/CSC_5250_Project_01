@@ -125,14 +125,24 @@ void unregisterAccount(int fd, struct sockaddr_in *client_addr,
 
 void listUsersAndFiles(int fd, struct clients_list *c_list) {
 	struct client_user *iterator = c_list->head;
-	Write(fd, BEGIN_DATA_BUFFER_SEND, R_LEN);
+	char buffer[R_LEN];
 
-	char buffer[7];
-	Read(fd, buffer, 7);
-	printf("just read %s\n", buffer);
+	Write(fd, BEGIN_DATA_BUFFER_SEND, R_LEN);
+	Read(fd, buffer, R_LEN);
+
+	if(strcmp(buffer, DATA_RECEIVED) != 0) {
+		perror("No confirmation from server");
+		exit(1);
+	}
+	
 	while(iterator) {
-		printf("writing %s\n", iterator->username);
 		Write(fd, iterator->username, MAX_USERNAME_LENGTH);
+		Read(fd, buffer, R_LEN);
+
+		if(strcmp(buffer, DATA_RECEIVED) != 0) {
+			perror("No confirmation from server");
+			exit(1);
+		}
 		iterator = iterator->next;
 	}
 
@@ -159,7 +169,6 @@ void *handleClientCommand(void * args_list) {
 	}
 	else if(strcmp(buffer, LIST_AVAILABLE_FILES) == 0) {
 		listUsersAndFiles(fd, c_list);
-		puts("g");
 	}	
 	
 	return;

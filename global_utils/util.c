@@ -8,6 +8,8 @@ const char* LIST_AVAILABLE_FILES = "000100";
 const char* QUIT = "000101";
 const char* HELP = "000110";
 
+const char* DATA_RECEIVED = "010001"; // LATEST NUMBER //
+
 const char* BEGIN_DATA_BUFFER_SEND = "000111";
 const char* END_DATA_BUFFER_SEND = "001000";
 const char* VALID_USER_NAME = "001001";

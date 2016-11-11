@@ -31,6 +31,8 @@ extern const char* LIST_AVAILABLE_FILES;
 extern const char* QUIT;
 extern const char* HELP;
 
+extern const char* DATA_RECEIVED;
+
 /*** Responses from server ***/
 
 extern const char* BEGIN_DATA_BUFFER_SEND;
