@@ -67,7 +67,6 @@ void handlePeer() {
 
 void registerUser(int fd) {
 	char buffer[MAX_SERVER_RESPONSE_LENGTH];
-	bzero(buffer, MAX_SERVER_RESPONSE_LENGTH); 
 
 	Write(fd, REGISTER_USER, R_LEN);
 	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
@@ -77,7 +76,6 @@ void registerUser(int fd) {
 
 		puts("Enter a user name :\n");
 
-		bzero(buffer, MAX_SERVER_RESPONSE_LENGTH);
 		char * user_name = getLine();	
 
 		Write(fd, user_name, strlen(user_name) + 1);
@@ -89,7 +87,6 @@ void registerUser(int fd) {
 			puts("Username already in use.");
 			puts("Enter a different username : \n");
 
-			bzero(buffer, MAX_SERVER_RESPONSE_LENGTH);
 			user_name = getLine();
 
 			Write(fd, user_name, strlen(user_name) + 1);
@@ -120,19 +117,55 @@ void unregisterUser(int fd) {
 	if(strcmp(buffer, IP_DOES_NOT_EXIST) == 0) {
 		puts("This IP is not registered");
 	}
+	else if(strcmp(buffer, USER_UNREGISTERED) == 0) {
+		puts("Unregistered successfully");
+	}
+	else {
+		perror("Error unregistering user");
+	}
+}
+
+void listUsersAndFiles(int fd) {
+	void *buffer[MAX_DATA_BUFFER_SIZE];
+
+	puts("a");
+	Write(fd, LIST_AVAILABLE_FILES, R_LEN);
+	Read(fd, buffer, MAX_DATA_BUFFER_SIZE);
+puts("b");
+
+	if(strcmp(buffer, BEGIN_DATA_BUFFER_SEND) != 0) {
+		perror("Error reading data from server");
+		exit(1);
+	}
+puts("c");
+Write(fd, "cool", 5);
+	Read(fd, buffer, MAX_DATA_BUFFER_SIZE);
+puts("d");
+	if(strcmp(buffer, END_DATA_BUFFER_SEND) == 0) {
+		puts("No users in the system");
+		return;
+	}
+
+puts("e");
+	if(strcmp(buffer, END_DATA_BUFFER_SEND) == 0) {
+		puts("No users in system");
+	}
+	else {
+		puts("f");
+		while(strcmp(buffer, END_DATA_BUFFER_SEND) != 0) {
+			printf("  %s\n", buffer);
+			Read(fd, buffer, MAX_DATA_BUFFER_SIZE);
+		}
+	}
 }
 
 void handleCommand(int fd, int * deregistering) {
 	int valid_command = 0;
 	char buffer[MAX_COMMAND_LENGTH];
 
-	bzero(buffer, MAX_COMMAND_LENGTH);
-
 	while(!valid_command) {
-		if(read(STDIN_FILENO, buffer, MAX_COMMAND_LENGTH) < 0) {
-			perror("Error reading command");
-			exit(1);
-		}
+		Read(STDIN_FILENO, buffer, MAX_COMMAND_LENGTH);
+		
 		if(strcmp(buffer, "reg\n") == 0) {
 			registerUser(fd);
 			valid_command = 1;
@@ -150,7 +183,7 @@ void handleCommand(int fd, int * deregistering) {
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "list\n") == 0) {
-			puts("list command");
+			listUsersAndFiles(fd);
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "quit\n") == 0) {

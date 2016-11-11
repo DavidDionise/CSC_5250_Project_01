@@ -11,6 +11,7 @@
 #define R_LEN 7
 #define MAX_COMMAND_LENGTH 16
 #define MAX_SERVER_RESPONSE_LENGTH 512
+#define MAX_DATA_BUFFER_SIZE 512
 #define MAX_USERNAME_LENGTH 64
 
 // Struct to pass arguments to pthread routine
@@ -30,18 +31,18 @@ extern const char* LIST_AVAILABLE_FILES;
 extern const char* QUIT;
 extern const char* HELP;
 
-/*** Status' to send accross network ***/
+/*** Responses from server ***/
 
+extern const char* BEGIN_DATA_BUFFER_SEND;
+extern const char* END_DATA_BUFFER_SEND;
 extern const char* VALID_USER_NAME;
 extern const char* USER_NAME_TAKEN;
-
 extern const char* VALID_IP;
 extern const char* IP_ALREADY_HAS_ACCOUNT;
-
 extern const char* USER_NAME_REGISTERED;
 extern const char* ERROR_REGISTERING_USER_NAME;
-
 extern const char* IP_DOES_NOT_EXIST;
+extern const char* USER_UNREGISTERED;
 
 // Wrapper for the read() system call
 void Read(int fd, void * buffer, int bytes);

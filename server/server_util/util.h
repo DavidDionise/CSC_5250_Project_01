@@ -49,12 +49,14 @@ struct clients_list {
 void * handleClientCommand(void * args);
 
 // Registers a users account into server
-void registerAccount(int fd, struct sockaddr_in * client_addr,
-	struct clients_list * c_list);
+void registerAccount(int fd, struct sockaddr_in *client_addr,
+	struct clients_list *c_list);
 
 // Unregisters a users account
-void unregisterAccount(int fd, struct sockaddr_in * client_addr,
-	struct clients_list * c_list);
+void unregisterAccount(int fd, struct sockaddr_in *client_addr,
+	struct clients_list *c_list);
+
+void listUsersAndFiles(int fd, struct clients_list *c_list);
 
 
 #endif

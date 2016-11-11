@@ -25,7 +25,6 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	Read(fd, username_buffer, MAX_USERNAME_LENGTH);
 	
 	//Check if user name is unique
-	
 	iterator = c_list->head;
 	while(iterator) {
 		if(strcmp(iterator->username, username_buffer) == 0) {
@@ -55,8 +54,12 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	
 	// All is well, initialize new user
 	struct client_user *new_user = malloc(sizeof(struct client_user));
-	new_user->username = username_buffer;
-	new_user->ip = client_ip;
+
+	new_user->username = malloc(sizeof(char) * strlen(username_buffer));
+	strcpy(new_user->username, username_buffer);
+
+	new_user->ip = malloc(sizeof(char) * strlen(client_ip));
+	strcpy(new_user->ip, client_ip);
 
 	// Attach new user to linked list
 	if(c_list->head == 0) {
@@ -78,9 +81,9 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 
 void unregisterAccount(int fd, struct sockaddr_in *client_addr, 
 	struct clients_list *c_list) {
+
 	int ip_exists = 0;
 	char*client_ip = inet_ntoa(client_addr->sin_addr);
-
 	struct client_user *iterator, *iterator_trailer;
 
 	iterator = c_list->head;
@@ -93,13 +96,19 @@ void unregisterAccount(int fd, struct sockaddr_in *client_addr,
 				c_list->head = 0;	
 				c_list->tail = 0;
 			}
-			if(iterator == c_list->head) 
+			else if(iterator == c_list->head) 
 				c_list->head = iterator->next;
 			else if(iterator == c_list->tail) 
 				c_list->tail = iterator_trailer;
 			else 
 				iterator_trailer->next = iterator->next;
+
+			free(iterator->username);
+			free(iterator->ip);
 			free(iterator);
+			//TO DO : Free all files
+			
+			break;
 		}
 		else {
 			// increment iterator and iterator_trailer
@@ -110,25 +119,48 @@ void unregisterAccount(int fd, struct sockaddr_in *client_addr,
 
 	if(!ip_exists) 
 		Write(fd, IP_DOES_NOT_EXIST, R_LEN);
+	else
+		Write(fd, USER_UNREGISTERED, R_LEN);
+}
+
+void listUsersAndFiles(int fd, struct clients_list *c_list) {
+	struct client_user *iterator = c_list->head;
+	Write(fd, BEGIN_DATA_BUFFER_SEND, R_LEN);
+
+	char buffer[7];
+	Read(fd, buffer, 7);
+	printf("just read %s\n", buffer);
+	while(iterator) {
+		printf("writing %s\n", iterator->username);
+		Write(fd, iterator->username, MAX_USERNAME_LENGTH);
+		iterator = iterator->next;
+	}
+
+	Write(fd, END_DATA_BUFFER_SEND, R_LEN);
 }
 
 void *handleClientCommand(void * args_list) {
 	struct args *args = (struct args *)args_list;
 
-	// unpack arguments
+	// Unpack arguments
 	int fd = args->socket_fd;
 	struct sockaddr_in *client_addr = args->client_addr;
 	struct clients_list *c_list = args->c_list;
 
 	char buffer[R_LEN];
 
-	read(fd, buffer, R_LEN);
+	Read(fd, buffer, R_LEN);
 
 	if(strcmp(buffer, REGISTER_USER) == 0) {
 		registerAccount(fd, client_addr, c_list);
 	}
 	else if(strcmp(buffer, UNREGISTER_USER) == 0) {
-		puts("in if");
 		unregisterAccount(fd, client_addr, c_list);
 	}
+	else if(strcmp(buffer, LIST_AVAILABLE_FILES) == 0) {
+		listUsersAndFiles(fd, c_list);
+		puts("g");
+	}	
+	
+	return;
 }
