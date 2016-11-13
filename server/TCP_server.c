@@ -57,6 +57,8 @@ int main(int argc, char* argv[]) {
 			exit(1);
 		}
 
+		puts("accecpted");
+
 		// Initialize thread
 		pthread_t tid;
 		pthread_attr_t attr;

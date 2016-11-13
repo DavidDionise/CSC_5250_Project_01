@@ -53,9 +53,9 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 		}
 	}
 
+	Write(fd, READY_TO_RECEIVE, R_LEN); 
 	// Get clients port number
 	Read(fd, port_buffer, 5);
-	Write(fd, DATA_RECEIVED, R_LEN);
 	
 	// All is well, initialize new user
 	struct client_user *new_user = malloc(sizeof(struct client_user));
@@ -68,8 +68,6 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 
 	new_user->port_number = malloc(sizeof(char) * strlen(port_buffer) + 1);
 	strcpy(port_buffer, new_user->port_number);
-
-	printf("Port = %s\n", new_user->port_number);
 
 	new_user->files = malloc(sizeof(struct files_list));
 	new_user->files->head = 0;
@@ -166,9 +164,10 @@ void listUsersAndFiles(int fd, struct clients_list *c_list) {
 
 		while(c_file) {
 			// Construct filename
-			strcat(print_file_buf, c_file->file_name);
-			strcat(print_file_buf, "_");
+			
 			strcat(print_file_buf, iterator->username);	
+			strcat(print_file_buf, ": ");
+			strcat(print_file_buf, c_file->file_name);
 
 			Write(fd, print_file_buf, MAX_PATH_LENGTH + MAX_USERNAME_LENGTH);
 			Read(fd, buffer, R_LEN);
@@ -260,7 +259,7 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 
 	char message_buffer[MAX_SERVER_RESPONSE_LENGTH];
 	char path_buffer[MAX_PATH_LENGTH];
-	int found_file = 0;
+	int file_found = 0;
 
 	Write(fd, READY_TO_RECEIVE, R_LEN);
 	
@@ -273,13 +272,13 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 		c_file = client->files->head;
 		while(c_file) {
 			if(strcmp(c_file->path, path_buffer) == 0) {
-				found_file = 1;
+				file_found = 1;
 				break;
 			}
 			else
-				c_file->c_file->next;
+				c_file = c_file->next;
 		}
-		if (found_file)
+		if (file_found)
 			break;
 		else
 			client = client->next;
@@ -290,30 +289,27 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 		return;
 	}
 
-	Write(fd, c_file->ip, 16);
+	Write(fd, client->ip, 16);
 	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
 	if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
 		perror("Error communicating with client");
 		return;
 	}
 
-	Write(fd, c_file->port_number, 5);
+	Write(fd, client->port_number, 5);
 	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
 	if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
 		perror("Error communicating with client");
 		return;
 	}
 
-	Write(fd, c_file->, 5);
+	Write(fd, c_file->path, strlen(c_file->path) + 1);
 	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
 	if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
 		perror("Error communicating with client");
 		return;
 	}
 
-	//
-	// If found, send client ip, port, and path
-	// Else send FILE_DOES_NOT_EXIST
 }
 
 void *handleClientCommand(void * args_list) {

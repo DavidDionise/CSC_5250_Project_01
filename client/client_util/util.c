@@ -1,9 +1,5 @@
 #include "util.h"
 
-void serverRoutine(void *arg) {
-	puts("in routine");
-}
-
 char* getLine() {
 	int length = 10;
 	int count = 0;
@@ -65,8 +61,63 @@ void printMenu() {
 	printf("\n\n");
 }
 
-void handlePeer() {
+void *serverRoutine(void *port_buffer) {
+	// Initialize socket
+	int socket_fd, new_socket;
+	int port_number = atoi(port_buffer);
+
+	struct sockaddr_in  server_addr, client_addr;
+	int client_addr_length = sizeof(client_addr);
+
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(port_number);
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+
+	if((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("Error creating socket");
+		exit(1);
+	}
+
+	if((bind(socket_fd, (const struct sockaddr *) &server_addr,
+		(socklen_t)sizeof(server_addr))) < 0) {
+		perror("Error binding");
+		exit(1);
+	}	
+
+	if(listen(socket_fd, 32) < 0) {
+		perror("Error initializing listen");
+		exit(1);
+	}
+
+	printf("Server Listening on Port %s\n", port_buffer);
+	
+	while(1){
+		if ((new_socket = accept(socket_fd, (struct sockaddr *)&client_addr, 
+			(socklen_t*)&client_addr_length)) < 0) {
+			perror("Error accepting client");
+			exit(1);
+		}
+
+		// Initialize thread
+		pthread_t tid;
+		pthread_attr_t attr;
+
+		pthread_attr_init(&attr);
+
+		// Set thread as detached
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+		pthread_create(&tid, &attr, &handlePeer, NULL);
+	}
+
+	close(socket_fd);
+	close(new_socket);
+	return 0;
+}
+
+void *handlePeer(void *arg) {
 	puts("in handlePeer");
+	return;
 }
 
 void registerUser(int fd, int port_number) {
@@ -106,12 +157,7 @@ void registerUser(int fd, int port_number) {
 		Write(fd, port_buffer, 5);
 		Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
 
-		if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
-			perror("Error communicating with server");
-			exit(1);
-		}
-
-		if(strcmp(buffer, USER_NAME_REGISTERED) == 0) {
+		if(strcmp(message_buffer, USER_NAME_REGISTERED) == 0) {
 			printf("User name has been registered with the system");
 		}
 		else {

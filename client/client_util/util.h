@@ -10,11 +10,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "../../global_utils/util.h"
 
 // Starts server to listen for peers
 void* serverRoutine(void *arg); 
+
+// Handle peer request
+void* handlePeer(void *arg);
 
 // Reads a line until new line character
 char* getLine();
@@ -47,8 +51,5 @@ void downloadFile(int fd);
 //	executes program accordingly
 void handleCommand(int fd, int *deregistering, int port_number);
 
-// Routine to manage incoming download requests
-// 	from peers
-void handlePeer();
 
 #endif
