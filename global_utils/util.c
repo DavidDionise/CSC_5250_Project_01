@@ -8,7 +8,8 @@ const char* LIST_AVAILABLE_FILES = "000100";
 const char* QUIT = "000101";
 const char* HELP = "000110";
 
-const char* DATA_RECEIVED = "010001"; // LATEST NUMBER //
+const char* DATA_RECEIVED = "010001"; 
+const char* READY_TO_RECEIVE = "010010";
 
 const char* BEGIN_DATA_BUFFER_SEND = "000111";
 const char* END_DATA_BUFFER_SEND = "001000";
@@ -20,6 +21,7 @@ const char* USER_NAME_REGISTERED = "001101";
 const char* ERROR_REGISTERING_USER_NAME = "001110";
 const char* IP_DOES_NOT_EXIST = "001111";
 const char* USER_UNREGISTERED = "010000";
+const char* FILE_DOES_NOT_EXIST = "010011"; // LATEST NUMBER //
 
 void Read(int fd, void * buffer, int bytes) {
 	if(read(fd, buffer, bytes) < 0) {

@@ -1,5 +1,9 @@
 #include "util.h"
 
+void serverRoutine(void *arg) {
+	puts("in routine");
+}
+
 char* getLine() {
 	int length = 10;
 	int count = 0;
@@ -65,8 +69,10 @@ void handlePeer() {
 	puts("in handlePeer");
 }
 
-void registerUser(int fd) {
+void registerUser(int fd, int port_number) {
 	char buffer[MAX_SERVER_RESPONSE_LENGTH];
+	char port_buffer[5];
+	char message_buffer[MAX_SERVER_RESPONSE_LENGTH];
 
 	Write(fd, REGISTER_USER, R_LEN);
 	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
@@ -93,6 +99,16 @@ void registerUser(int fd) {
 			Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
 
 			free(user_name);
+		}
+
+		sprintf(port_buffer, "%i", port_number);
+
+		Write(fd, port_buffer, 5);
+		Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+
+		if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
+			perror("Error communicating with server");
+			exit(1);
 		}
 
 		if(strcmp(buffer, USER_NAME_REGISTERED) == 0) {
@@ -140,12 +156,102 @@ void listUsersAndFiles(int fd) {
 	while(strcmp(buffer, END_DATA_BUFFER_SEND) != 0) {
 		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
 		Write(fd, DATA_RECEIVED, R_LEN);
+
 		if(strcmp(buffer, END_DATA_BUFFER_SEND) != 0)
 			printf("  %s\n", buffer);
 	}
 }
 
-void handleCommand(int fd, int * deregistering) {
+void uploadFileInfo(int server_fd) {
+	char* path;
+	char buffer[R_LEN];
+	int file_fd;
+	struct stat file_stats;
+
+	Write(server_fd, UPLOAD_FILE, R_LEN);
+	Read(server_fd, buffer, R_LEN);
+
+	if(strcmp(buffer, READY_TO_RECEIVE) != 0) {
+		if(strcmp(buffer, IP_DOES_NOT_EXIST) == 0) {
+			puts("Must register an account before uploading files");
+		}
+	}
+
+	puts("Enter the path to the file");
+	path = getLine();
+
+	if(file_fd = open(path, O_RDONLY, 0) < 0) {
+		if(errno == ENOENT)
+			puts("No file at path");
+		else {
+			perror("Error opening file");
+		}
+	}
+
+	if(fstat(file_fd, &file_stats) < 0) {
+		perror("Error getting file stats");
+	}
+
+	Write(server_fd, path, strlen(path) + 1);
+}
+
+void downloadFile(int fd) {
+	char* file_name;
+	char message_buffer[MAX_SERVER_RESPONSE_LENGTH];
+	char path_buffer[MAX_PATH_LENGTH];
+	char port_buffer[5];
+	char ip_buffer[16];
+	int peer_socket_fd;
+
+	Write(fd, DOWNLOAD_FILE, R_LEN);
+	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+
+	if(strcmp(message_buffer, READY_TO_RECEIVE) != 0) {
+		perror("Error communicating with server");
+		return;
+	}
+	
+	puts("Enter a filename to download :");
+	file_name = getLine();
+
+	Write(fd, file_name, strlen(file_name) + 1);
+
+	// Get IP
+	Read(fd, ip_buffer, MAX_SERVER_RESPONSE_LENGTH);
+	if(strcmp(message_buffer, FILE_DOES_NOT_EXIST) != 0) {
+		perror("File does not exist");
+		return;
+	}
+	Write(fd, DATA_RECEIVED, R_LEN);
+
+	// Get port number
+	Read(fd, port_buffer, 5);
+	Write(fd, DATA_RECEIVED, R_LEN);
+
+	// Get path
+	Read(fd, path_buffer, MAX_SERVER_RESPONSE_LENGTH);
+	Write(fd, DATA_RECEIVED, R_LEN);
+
+	peer_socket_fd = socket(AF_INET, SOCK_STREAM, 0);	
+	struct sockaddr_in peer_addr;
+
+	int port_number = atoi(port_buffer);
+
+	// Initialize socket address
+	peer_addr.sin_family = AF_INET;
+	peer_addr.sin_port = htons(port_number);
+	if(inet_aton(ip_buffer, &peer_addr.sin_addr.s_addr) == 0) {
+		perror("Error connecting to peer\n");
+		exit(1);
+	}
+
+	// Connect socket
+	connect(peer_socket_fd, (struct sockaddr*)&peer_addr, 
+		sizeof(peer_addr));
+
+}
+
+void handleCommand(int fd, int *deregistering, int my_port_number) {
 	int valid_command = 0;
 	char buffer[MAX_COMMAND_LENGTH];
 
@@ -153,7 +259,7 @@ void handleCommand(int fd, int * deregistering) {
 		Read(STDIN_FILENO, buffer, MAX_COMMAND_LENGTH);
 		
 		if(strcmp(buffer, "reg\n") == 0) {
-			registerUser(fd);
+			registerUser(fd, my_port_number);
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "unreg\n") == 0) {
@@ -161,11 +267,11 @@ void handleCommand(int fd, int * deregistering) {
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "down\n") == 0) {
-			puts("down command");
+			downloadFile(fd);
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "up\n") == 0) {
-			puts("up command");
+			uploadFileInfo(fd);
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "list\n") == 0) {
@@ -174,10 +280,6 @@ void handleCommand(int fd, int * deregistering) {
 		}
 		else if(strcmp(buffer, "quit\n") == 0) {
 			puts("quit command");
-			valid_command = 1;
-		}
-		else if(strcmp(buffer, "help\n") == 0) {
-			puts("help command");
 			valid_command = 1;
 		}
 		else {

@@ -38,6 +38,11 @@ int main(int argc, char* argv[]) {
 	c_list.head = 0;
 	c_list.tail = 0;
 
+	// Initialize file data structure
+	struct files_list f_list;
+	f_list.head = 0;
+	f_list.tail = 0;
+
 	if(listen(socket_fd, 32) < 0) {
 		perror("Error initializing listen");
 		exit(1);
@@ -65,6 +70,7 @@ int main(int argc, char* argv[]) {
 		args_list.socket_fd = new_socket;
 		args_list.client_addr = &client_addr;
 		args_list.c_list = &c_list;
+		args_list.f_list = &f_list;
 
 		pthread_create(&tid, &attr, &handleClientCommand, (void*)&args_list);
 	}
