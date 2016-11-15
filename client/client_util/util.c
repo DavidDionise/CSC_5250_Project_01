@@ -1,9 +1,9 @@
 #include "util.h"
 
 char* getLine() {
-	int length = 10;
+	int length = 40;
 	int count = 0;
-	char* buffer = (char*)malloc(sizeof(char) * length);
+	char* buffer = malloc(length);
 	char* buf_ptr = &buffer[0];
 	char c;
 
@@ -12,7 +12,7 @@ char* getLine() {
 	while((c = getchar()) != '\n') {
 		if(count >= (length - 1)) {
 			length += 10;
-			buffer = (char*)realloc(buffer, length);
+			buffer = realloc(buffer, length);
 		}
 
 		++count;
@@ -134,14 +134,9 @@ void registerUser(int fd, int port_number) {
 		puts("Enter a user name :\n");
 
 		char * user_name = getLine();	
-		puts("a");
 
 		Write(fd, user_name, strlen(user_name) + 1); // ** 2
-puts("b");
-
 		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 3
-puts("c");
-
 
 		free(user_name);
 
@@ -158,16 +153,11 @@ puts("c");
 
 			free(user_name);
 		}
-puts("e");
-
 
 		sprintf(port_buffer, "%i", port_number);
 
 		Write(fd, port_buffer, 5); // ** 4
-puts("f");
-
 		Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 5
-puts("g");
 
 		if(strcmp(message_buffer, USER_NAME_REGISTERED) == 0) {
 			printf("User name has been registered with the system");
@@ -263,7 +253,7 @@ void downloadFile(int fd) {
 	int peer_socket_fd;
 
 	Write(fd, DOWNLOAD_FILE, R_LEN);
-	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 1
 
 	if(strcmp(message_buffer, READY_TO_RECEIVE) != 0) {
 		perror("Error communicating with server");
@@ -273,8 +263,8 @@ void downloadFile(int fd) {
 	puts("Enter user to download from");
 	user_name = getLine();
 
-	Write(fd, user_name, strlen(user_name) + 1);
-	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+	Write(fd, user_name, strlen(user_name) + 1); // ** 2
+	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 3
 
 	if(strcmp(message_buffer, READY_TO_RECEIVE) != 0) {
 		perror("Error communicating with server");
@@ -284,23 +274,23 @@ void downloadFile(int fd) {
 	puts("Enter a filename to download :");
 	file_name = getLine();
 
-	Write(fd, file_name, strlen(file_name) + 1);
+	Write(fd, file_name, strlen(file_name) + 1); // ** 4
 
 	// Get IP
-	Read(fd, ip_buffer, MAX_SERVER_RESPONSE_LENGTH);
+	Read(fd, ip_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 5
 	if(strcmp(message_buffer, FILE_DOES_NOT_EXIST) != 0) {
 		perror("File does not exist");
 		return;
 	}
-	Write(fd, DATA_RECEIVED, R_LEN);
+	Write(fd, DATA_RECEIVED, R_LEN); // ** 6
 
 	// Get port number
-	Read(fd, port_buffer, 5);
-	Write(fd, DATA_RECEIVED, R_LEN);
+	Read(fd, port_buffer, 5); // ** 7
+	Write(fd, DATA_RECEIVED, R_LEN); // ** 8
 
 	// Get path
-	Read(fd, path_buffer, MAX_SERVER_RESPONSE_LENGTH);
-	Write(fd, DATA_RECEIVED, R_LEN);
+	Read(fd, path_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 9
+	Write(fd, DATA_RECEIVED, R_LEN); // ** 10
 
 	peer_socket_fd = socket(AF_INET, SOCK_STREAM, 0);	
 	struct sockaddr_in peer_addr;

@@ -18,13 +18,13 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	}
 
 	// IP not yet registered => register client
-	Write(fd, VALID_IP, R_LEN); // ** 1
+	Write(fd, VALID_IP, R_LEN);
 
 	int unique_username = 1;
 	char username_buffer[MAX_USERNAME_LENGTH];  
 
-	Read(fd, username_buffer, MAX_USERNAME_LENGTH); // ** 2
-	
+	Read(fd, username_buffer, MAX_USERNAME_LENGTH);	
+
 	//Check if user name is unique
 	iterator = c_list->head;
 	while(iterator) {
@@ -54,9 +54,9 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 		}
 	}
 
-	Write(fd, READY_TO_RECEIVE, R_LEN); // ** 3
+	Write(fd, READY_TO_RECEIVE, R_LEN); 
 	// Get clients port number
-	Read(fd, port_buffer, 5); // ** 4
+	Read(fd, port_buffer, 5); 
 	
 	// All is well, initialize new user
 	struct client_user *new_user = malloc(sizeof(struct client_user));
@@ -263,16 +263,17 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 	char file_name_buffer[MAX_PATH_LENGTH];
 	int file_found = 0;
 
-	Write(fd, READY_TO_RECEIVE, R_LEN);
+	Write(fd, READY_TO_RECEIVE, R_LEN); // ** 1
 
-	Read(fd, user_name_buffer, MAX_USERNAME_LENGTH);
-	Write(fd, READY_TO_RECEIVE, R_LEN);
+	Read(fd, user_name_buffer, MAX_USERNAME_LENGTH); // ** 2
+	Write(fd, READY_TO_RECEIVE, R_LEN); // ** 3
 
-	Read(fd, file_name_buffer, R_LEN);
+	Read(fd, file_name_buffer, R_LEN); // ** 4
 
 	struct client_user *client = c_list->head;
 	struct file_node *c_file;
 
+	// Search for user entered by client
 	while(client) {
 		if(strcmp(client->username, user_name_buffer) == 0) {
 			puts("client found");
@@ -293,26 +294,26 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 	}
 
 	if(!file_found) {
-		Write(fd, FILE_DOES_NOT_EXIST, R_LEN);
+		Write(fd, FILE_DOES_NOT_EXIST, R_LEN); // ** 5a
 		return;
 	}
 
-	Write(fd, client->ip, 16);
-	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+	Write(fd, client->ip, 16); // ** 5b
+	Read(fd, message_buffer, R_LEN); // ** 6
 	if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
 		perror("Error communicating with client");
 		return;
 	}
 
-	Write(fd, client->port_number, 5);
-	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+	Write(fd, client->port_number, 5); // ** 7
+	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 8
 	if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
 		perror("Error communicating with client");
 		return;
 	}
 
-	Write(fd, c_file->path, strlen(c_file->path) + 1);
-	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+	Write(fd, c_file->path, strlen(c_file->path) + 1); // ** 9
+	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 10
 	if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
 		perror("Error communicating with client");
 		return;
