@@ -18,12 +18,12 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	}
 
 	// IP not yet registered => register client
-	Write(fd, VALID_IP, R_LEN);
+	Write(fd, VALID_IP, R_LEN); // ** 1
 
 	int unique_username = 1;
 	char username_buffer[MAX_USERNAME_LENGTH];  
 
-	Read(fd, username_buffer, MAX_USERNAME_LENGTH);
+	Read(fd, username_buffer, MAX_USERNAME_LENGTH); // ** 2
 	
 	//Check if user name is unique
 	iterator = c_list->head;
@@ -32,6 +32,7 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 			unique_username = 0;
 			break;
 		}
+		iterator = iterator->next;
 	}
 
 	while(!unique_username) {
@@ -53,9 +54,9 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 		}
 	}
 
-	Write(fd, READY_TO_RECEIVE, R_LEN); 
+	Write(fd, READY_TO_RECEIVE, R_LEN); // ** 3
 	// Get clients port number
-	Read(fd, port_buffer, 5);
+	Read(fd, port_buffer, 5); // ** 4
 	
 	// All is well, initialize new user
 	struct client_user *new_user = malloc(sizeof(struct client_user));
@@ -258,25 +259,32 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 	struct clients_list *c_list) {
 
 	char message_buffer[MAX_SERVER_RESPONSE_LENGTH];
-	char path_buffer[MAX_PATH_LENGTH];
+	char user_name_buffer[MAX_USERNAME_LENGTH];
+	char file_name_buffer[MAX_PATH_LENGTH];
 	int file_found = 0;
 
 	Write(fd, READY_TO_RECEIVE, R_LEN);
-	
-	Read(fd, path_buffer, R_LEN);
+
+	Read(fd, user_name_buffer, MAX_USERNAME_LENGTH);
+	Write(fd, READY_TO_RECEIVE, R_LEN);
+
+	Read(fd, file_name_buffer, R_LEN);
 
 	struct client_user *client = c_list->head;
 	struct file_node *c_file;
 
 	while(client) {
-		c_file = client->files->head;
-		while(c_file) {
-			if(strcmp(c_file->path, path_buffer) == 0) {
-				file_found = 1;
-				break;
+		if(strcmp(client->username, user_name_buffer) == 0) {
+			puts("client found");
+			c_file = client->files->head;
+			while(c_file) {
+				if(strcmp(c_file->file_name, file_name_buffer) == 0) {
+					file_found = 1;
+					break;
+				}
+				else
+					c_file = c_file->next;
 			}
-			else
-				c_file = c_file->next;
 		}
 		if (file_found)
 			break;

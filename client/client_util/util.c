@@ -126,7 +126,7 @@ void registerUser(int fd, int port_number) {
 	char message_buffer[MAX_SERVER_RESPONSE_LENGTH];
 
 	Write(fd, REGISTER_USER, R_LEN);
-	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
+	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 1
 
 	// Check if user has already registered
 	if(strcmp(IP_ALREADY_HAS_ACCOUNT, buffer) != 0) {
@@ -134,13 +134,20 @@ void registerUser(int fd, int port_number) {
 		puts("Enter a user name :\n");
 
 		char * user_name = getLine();	
+		puts("a");
 
-		Write(fd, user_name, strlen(user_name) + 1);
-		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
+		Write(fd, user_name, strlen(user_name) + 1); // ** 2
+puts("b");
+
+		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 3
+puts("c");
+
 
 		free(user_name);
 
 		while(strcmp(buffer, USER_NAME_TAKEN) == 0) {
+			puts("d");
+
 			puts("Username already in use.");
 			puts("Enter a different username : \n");
 
@@ -151,11 +158,16 @@ void registerUser(int fd, int port_number) {
 
 			free(user_name);
 		}
+puts("e");
+
 
 		sprintf(port_buffer, "%i", port_number);
 
-		Write(fd, port_buffer, 5);
-		Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+		Write(fd, port_buffer, 5); // ** 4
+puts("f");
+
+		Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 5
+puts("g");
 
 		if(strcmp(message_buffer, USER_NAME_REGISTERED) == 0) {
 			printf("User name has been registered with the system");
@@ -242,6 +254,7 @@ void uploadFileInfo(int server_fd) {
 }
 
 void downloadFile(int fd) {
+	char* user_name;
 	char* file_name;
 	char message_buffer[MAX_SERVER_RESPONSE_LENGTH];
 	char path_buffer[MAX_PATH_LENGTH];
@@ -256,7 +269,18 @@ void downloadFile(int fd) {
 		perror("Error communicating with server");
 		return;
 	}
-	
+
+	puts("Enter user to download from");
+	user_name = getLine();
+
+	Write(fd, user_name, strlen(user_name) + 1);
+	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH);
+
+	if(strcmp(message_buffer, READY_TO_RECEIVE) != 0) {
+		perror("Error communicating with server");
+		return;
+	}
+
 	puts("Enter a filename to download :");
 	file_name = getLine();
 
