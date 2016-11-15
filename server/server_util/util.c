@@ -268,7 +268,7 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 	Read(fd, user_name_buffer, MAX_USERNAME_LENGTH); // ** 2
 	Write(fd, READY_TO_RECEIVE, R_LEN); // ** 3
 
-	Read(fd, file_name_buffer, R_LEN); // ** 4
+	Read(fd, file_name_buffer, MAX_PATH_LENGTH); // ** 4
 
 	struct client_user *client = c_list->head;
 	struct file_node *c_file;
@@ -276,7 +276,6 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 	// Search for user entered by client
 	while(client) {
 		if(strcmp(client->username, user_name_buffer) == 0) {
-			puts("client found");
 			c_file = client->files->head;
 			while(c_file) {
 				if(strcmp(c_file->file_name, file_name_buffer) == 0) {

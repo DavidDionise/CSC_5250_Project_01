@@ -278,7 +278,7 @@ void downloadFile(int fd) {
 
 	// Get IP
 	Read(fd, ip_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 5
-	if(strcmp(message_buffer, FILE_DOES_NOT_EXIST) != 0) {
+	if(strcmp(message_buffer, FILE_DOES_NOT_EXIST) == 0) {
 		perror("File does not exist");
 		return;
 	}
@@ -287,6 +287,8 @@ void downloadFile(int fd) {
 	// Get port number
 	Read(fd, port_buffer, 5); // ** 7
 	Write(fd, DATA_RECEIVED, R_LEN); // ** 8
+
+	printf("port = %s\n", port_buffer);
 
 	// Get path
 	Read(fd, path_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 9
@@ -304,6 +306,8 @@ void downloadFile(int fd) {
 		perror("Error connecting to peer\n");
 		exit(1);
 	}
+
+	printf("ip_buffer = %s\n", ip_buffer);
 
 	// Connect socket
 	connect(peer_socket_fd, (struct sockaddr*)&peer_addr, 
