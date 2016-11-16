@@ -218,10 +218,6 @@ void addFileInfo(int fd, struct clients_list *c_list,
 	Read(fd, port_buffer, 6);
 
 	while(client) {
-		printf("client->ip : %s\n", client->ip);
-		printf("client_ip : %s\n", client_ip);
-		printf("client->port_number : %s\n", client->port_number);
-		printf("port_buffer : %s\n", port_buffer);
 		if(strcmp(client->ip, client_ip) == 0) {
 			if(strcmp(client->port_number, port_buffer) == 0) {
 				user_found = 1;
@@ -345,6 +341,10 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 		perror("Error communicating with client");
 		return;
 	}
+
+	printf("c_file->file_name = %s\n", c_file->file_name);
+	printf("c_file->path = %s\n", c_file->path);
+	printf("length = %s\n", strlen(c_file->path));
 
 	Write(fd, c_file->path, strlen(c_file->path) + 1); // ** 9
 	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 10

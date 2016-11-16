@@ -116,14 +116,12 @@ void *serverRoutine(void *port_buffer) {
 }
 
 void *handlePeer(void *fd) {
-	puts("in handle peer");
 	char path_buffer[MAX_PATH_LENGTH];
 	int file_fd;
 	int *peer_fd;
 	char file_size_buffer[32];
 
 	peer_fd = (int*)fd;
-	printf("peer_fd = %i\n", *peer_fd);
 
 	void *buffer[MAX_DATA_BUFFER_SIZE];
 	int read_length;
@@ -378,13 +376,14 @@ void downloadFile(int fd) {
 	char downloaded_file_path[MAX_PATH_LENGTH];
 	char download_buffer[MAX_DATA_BUFFER_SIZE];
 	
-	strcat(downloaded_file_path, "../downloads/");
+	strcpy(downloaded_file_path, "../downloads/");
 	strcat(downloaded_file_path, file_name);
 	
 	if((file_fd = open(downloaded_file_path, O_CREAT | O_EXCL | O_RDWR | O_APPEND)) < 0) {
 		perror("Error opening file");
 		return;
 	}
+	printf("path_buffer = %s\n", path_buffer);
 
 	Write(peer_socket_fd, path_buffer, strlen(path_buffer) + 1); // ** 1
 
