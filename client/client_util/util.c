@@ -107,7 +107,7 @@ void *serverRoutine(void *port_buffer) {
 		// Set thread as detached
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-		pthread_create(&tid, &attr, &handlePeer, NULL);
+		pthread_create(&tid, &attr, &handlePeer, &new_socket);
 	}
 
 	close(socket_fd);
@@ -115,60 +115,119 @@ void *serverRoutine(void *port_buffer) {
 	return 0;
 }
 
-void *handlePeer(void *arg) {
-	puts("in handlePeer");
+void *handlePeer(void *fd) {
+	puts("in handle peer");
+	char path_buffer[MAX_PATH_LENGTH];
+	int file_fd;
+	int *peer_fd;
+	char file_size_buffer[32];
+
+	peer_fd = (int*)fd;
+	printf("peer_fd = %i\n", *peer_fd);
+
+	void *buffer[MAX_DATA_BUFFER_SIZE];
+	int read_length;
+
+	struct stat file_stats;
+	off_t file_size;
+	int curs_pos = 0; 
+	
+	// Get path from peer
+	Read(*peer_fd, path_buffer, MAX_PATH_LENGTH); // ** 1
+	printf("path = %s\n", path_buffer);
+
+	if((file_fd = open(path_buffer, O_RDONLY)) < 0) {
+		perror("Error opening read file");
+		return;
+	}
+
+	if(fstat(file_fd, &file_stats) < 0) {
+		perror("Error getting file stats");
+	}
+
+	file_size = file_stats.st_size;
+	sprintf(file_size_buffer, "%i", file_size);
+
+	// Send file size to peer
+	Write(*peer_fd, file_size_buffer, strlen(file_size_buffer) + 1);
+
+	while(curs_pos < file_size) {
+		if((read_length = read(file_fd, buffer, MAX_DATA_BUFFER_SIZE)) < 0) {
+			perror("Error reading file");
+			return;
+		}
+		curs_pos += read_length;
+		
+		Write(*peer_fd, buffer, read_length);
+		Read(*peer_fd, buffer, R_LEN);
+
+		if(strcmp(buffer, READY_TO_RECEIVE) != 0) {
+			perror("Error communicating with server");
+			return;
+		}
+	}
+		
+
+
 	return;
 }
 
-void registerUser(int fd, int port_number) {
+void registerUser(int fd, char** port_buffer) {
 	char buffer[MAX_SERVER_RESPONSE_LENGTH];
-	char port_buffer[5];
-	char message_buffer[MAX_SERVER_RESPONSE_LENGTH];
 
 	Write(fd, REGISTER_USER, R_LEN);
-	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 1
+	Read(fd, buffer, R_LEN); // ** 1
+
+	if(strcmp(buffer, READY_TO_RECEIVE) != 0) {
+		perror("Error communicating with server");
+		exit(1);
+	}
+
+	Write(fd, *port_buffer, 6); // ** 2
+	Read(fd, buffer, R_LEN); // ** 3
+
+	while(strcmp(buffer, IP_ALREADY_HAS_ACCOUNT) == 0) {
+		puts("IP/port combination not unique."); 
+		puts("Enter a new port number to accept peer requests:");
+
+		char* new_port = getLine();
+		strcpy(buffer, new_port);
+
+		Write(fd, buffer, strlen(buffer) + 1); // ** 3a
+		Read(fd, buffer, R_LEN); // ** 3b
+
+		if(strcmp(buffer, VALID_IP))
+			strcpy(*port_buffer, new_port);
+	}
 
 	// Check if user has already registered
-	if(strcmp(IP_ALREADY_HAS_ACCOUNT, buffer) != 0) {
+	puts("Enter a user name :\n");
 
-		puts("Enter a user name :\n");
+	char * user_name = getLine();	
 
-		char * user_name = getLine();	
+	Write(fd, user_name, strlen(user_name) + 1); // ** 4
+	Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 5
 
-		Write(fd, user_name, strlen(user_name) + 1); // ** 2
-		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 3
+	free(user_name);
+
+	while(strcmp(buffer, USER_NAME_TAKEN) == 0) {
+		puts("Username already in use.");
+		puts("Enter a different username : \n");
+
+		user_name = getLine();
+
+		Write(fd, user_name, strlen(user_name) + 1);
+		Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
 
 		free(user_name);
+	}
 
-		while(strcmp(buffer, USER_NAME_TAKEN) == 0) {
-			puts("d");
-
-			puts("Username already in use.");
-			puts("Enter a different username : \n");
-
-			user_name = getLine();
-
-			Write(fd, user_name, strlen(user_name) + 1);
-			Read(fd, buffer, MAX_SERVER_RESPONSE_LENGTH);
-
-			free(user_name);
-		}
-
-		sprintf(port_buffer, "%i", port_number);
-
-		Write(fd, port_buffer, 5); // ** 4
-		Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 5
-
-		if(strcmp(message_buffer, USER_NAME_REGISTERED) == 0) {
-			printf("User name has been registered with the system");
-		}
-		else {
-			perror("Error registering name with server");
-			exit(1);
-		}
+	if(strcmp(buffer, USER_NAME_REGISTERED) == 0) {
+		printf("User name has been registered with the system");
 	}
 	else {
-		puts("This IP address is already registered with the server");		
+		perror("Error registering name with server");
+		exit(1);
 	}
 }
 
@@ -210,7 +269,7 @@ void listUsersAndFiles(int fd) {
 	}
 }
 
-void uploadFileInfo(int server_fd) {
+void uploadFileInfo(int server_fd, char** port_buffer) {
 	char* path;
 	char buffer[R_LEN];
 	int file_fd;
@@ -220,10 +279,11 @@ void uploadFileInfo(int server_fd) {
 	Read(server_fd, buffer, R_LEN);
 
 	if(strcmp(buffer, READY_TO_RECEIVE) != 0) {
-		if(strcmp(buffer, IP_DOES_NOT_EXIST) == 0) {
-			puts("Must register an account before uploading files");
-		}
+		perror("Error communicating with server");
+		exit(1);
 	}
+
+	Write(server_fd, *port_buffer, strlen(*port_buffer) + 1);
 
 	puts("Enter the path to the file");
 	path = getLine();
@@ -248,7 +308,7 @@ void downloadFile(int fd) {
 	char* file_name;
 	char message_buffer[MAX_SERVER_RESPONSE_LENGTH];
 	char path_buffer[MAX_PATH_LENGTH];
-	char port_buffer[5];
+	char port_buffer[6];
 	char ip_buffer[16];
 	int peer_socket_fd;
 
@@ -283,12 +343,11 @@ void downloadFile(int fd) {
 		return;
 	}
 	Write(fd, DATA_RECEIVED, R_LEN); // ** 6
+	printf("ip = %s\n", ip_buffer);
 
 	// Get port number
 	Read(fd, port_buffer, 5); // ** 7
 	Write(fd, DATA_RECEIVED, R_LEN); // ** 8
-
-	printf("port = %s\n", port_buffer);
 
 	// Get path
 	Read(fd, path_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 9
@@ -307,42 +366,75 @@ void downloadFile(int fd) {
 		exit(1);
 	}
 
-	printf("ip_buffer = %s\n", ip_buffer);
+	// ***** CONNECTING TO PEER **** //
 
-	// Connect socket
 	connect(peer_socket_fd, (struct sockaddr*)&peer_addr, 
 		sizeof(peer_addr));
 
+	int file_fd;
+	char file_size_buffer[32];
+	int file_size, read_length;
+	int curs_pos = 0;
+	char downloaded_file_path[MAX_PATH_LENGTH];
+	char download_buffer[MAX_DATA_BUFFER_SIZE];
+	
+	strcat(downloaded_file_path, "../downloads/");
+	strcat(downloaded_file_path, file_name);
+	
+	if((file_fd = open(downloaded_file_path, O_CREAT | O_EXCL | O_RDWR | O_APPEND)) < 0) {
+		perror("Error opening file");
+		return;
+	}
+
+	Write(peer_socket_fd, path_buffer, strlen(path_buffer) + 1); // ** 1
+
+	// Get file size
+	Read(peer_socket_fd, file_size_buffer, 32);
+	file_size = atoi(file_size_buffer);
+
+	while(curs_pos < file_size) {
+		if((read_length = 
+			read(peer_socket_fd, download_buffer, MAX_DATA_BUFFER_SIZE)) < 0) { 
+
+			perror("Error reading from peer");
+			exit(1);
+		}
+		curs_pos != read_length;
+
+		Write(file_fd, download_buffer, read_length);
+		// Confirm with peer
+		Write(peer_socket_fd, READY_TO_RECEIVE, R_LEN);
+	}
 }
 
-void handleCommand(int fd, int *deregistering, int my_port_number) {
+void handleCommand(int fd, int *deregistering, char** port_buffer) {
 	int valid_command = 0;
-	char buffer[MAX_COMMAND_LENGTH];
+	char* buffer;
 
 	while(!valid_command) {
-		Read(STDIN_FILENO, buffer, MAX_COMMAND_LENGTH);
+		buffer = getLine();
 		
-		if(strcmp(buffer, "reg\n") == 0) {
-			registerUser(fd, my_port_number);
+		if(strcmp(buffer, "reg") == 0) {
+			registerUser(fd, port_buffer);
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "unreg\n") == 0) {
+		else if(strcmp(buffer, "unreg") == 0) {
 			unregisterUser(fd);
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "down\n") == 0) {
+		else if(strcmp(buffer, "down") == 0) {
 			downloadFile(fd);
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "up\n") == 0) {
-			uploadFileInfo(fd);
+		else if(strcmp(buffer, "up") == 0) {
+			uploadFileInfo(fd, port_buffer);
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "list\n") == 0) {
+		else if(strcmp(buffer, "list") == 0) {
 			listUsersAndFiles(fd);
 			valid_command = 1;
 		}
-		else if(strcmp(buffer, "quit\n") == 0) {
+		else if(strcmp(buffer, "quit") == 0) {
 			puts("quit command");
 			valid_command = 1;
 		}

@@ -18,7 +18,7 @@
 void* serverRoutine(void *arg); 
 
 // Handle peer request
-void* handlePeer(void *arg);
+void* handlePeer(void *fd);
 
 // Reads a line until new line character
 char* getLine();
@@ -33,7 +33,7 @@ void printMenu();
 
 // Prompts user to register a username
 // 	with the server
-void registerUser(int fd, int port_number);
+void registerUser(int fd, char** port_buffer);
 
 // Unregisters user from server
 void unregisterUser(int fd);
@@ -42,14 +42,14 @@ void unregisterUser(int fd);
 void listUsersAndFiles(int fd);
 
 // Upload file to systek
-void uploadFileInfo(int fd);
+void uploadFileInfo(int fd, char** port_buffer);
 
 // Download file from peer
 void downloadFile(int fd);
 
 // Gets the command from the user and 
 //	executes program accordingly
-void handleCommand(int fd, int *deregistering, int port_number);
+void handleCommand(int fd, int *deregistering, char** port_buffer);
 
 
 #endif

@@ -14,14 +14,19 @@
 #include "client_util/util.h"
 
 int main(int argc, char* argv[]) {
-	if (argc < 4) {
+	if (argc < 3) {
 		perror("Missing hostname and/or port number\n");
 		exit(1);
 	}
+	char* port_buffer;
+	void* thread_arg;
+
+	printf("\n\nEnter a port number to accept peer requests from :");
+	port_buffer = getLine();
+	thread_arg = port_buffer;
 
 	int socket_fd;
 	int server_port_number = atoi(argv[2]);
-	int my_port_number = atoi(argv[3]);
 	struct sockaddr_in server_addr;
 	
 	int length, read_length;
@@ -37,7 +42,7 @@ int main(int argc, char* argv[]) {
 	// Set thread as detached
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	
-	pthread_create(&tid, &attr, &serverRoutine, argv[3]);
+	pthread_create(&tid, &attr, &serverRoutine, thread_arg);
 	
 	while(!deregistering) {
 		socket_fd = socket(AF_INET, SOCK_STREAM, 0);	
@@ -55,7 +60,7 @@ int main(int argc, char* argv[]) {
 
 		printMenu();
 
-		handleCommand(socket_fd, &deregistering, my_port_number);
+		handleCommand(socket_fd, &deregistering, &port_buffer);
 
 		close(socket_fd);
 	}

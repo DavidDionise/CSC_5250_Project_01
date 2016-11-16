@@ -3,27 +3,51 @@
 
 void registerAccount(int fd, struct sockaddr_in *client_addr,
 	struct clients_list *c_list) {
+	int unique_ip_port_combo = 1;
 
-	char*client_ip = inet_ntoa(client_addr->sin_addr);
-	char port_buffer[5];
+	char *client_ip = inet_ntoa(client_addr->sin_addr);
+	char port_buffer[6];
 	struct client_user *iterator = c_list->head; 
 
-	// Check if client IP has been registered
+	Write(fd, READY_TO_RECEIVE, R_LEN); // ** 1
+	Read(fd, port_buffer, 6); // ** 2
+	
+	// Check if client IP/Port combination has been registered
 	while(iterator) {
 		if(strcmp(iterator->ip, client_ip) == 0) {
-			Write(fd, IP_ALREADY_HAS_ACCOUNT, R_LEN);
-			return;
+			if(strcmp(iterator->port_number, port_buffer) == 0) {
+				unique_ip_port_combo = 0;
+				break;
+			}
 		}
 		iterator = iterator->next;
 	}
 
+	while(!unique_ip_port_combo) {
+		unique_ip_port_combo = 1;
+
+		Write(fd, IP_ALREADY_HAS_ACCOUNT, R_LEN); // ** 3
+		Read(fd, port_buffer, 6); 
+
+		// Check if client IP/Port combination has been registered
+		while(iterator) {
+			if(strcmp(iterator->ip, client_ip) == 0) {
+				if(strcmp(iterator->port_number, port_buffer) == 0) {
+					unique_ip_port_combo = 0;
+					break;
+				}
+			}
+			iterator = iterator->next;
+		}
+	}
+
 	// IP not yet registered => register client
-	Write(fd, VALID_IP, R_LEN);
+	Write(fd, VALID_IP, R_LEN); // ** 3
 
 	int unique_username = 1;
 	char username_buffer[MAX_USERNAME_LENGTH];  
 
-	Read(fd, username_buffer, MAX_USERNAME_LENGTH);	
+	Read(fd, username_buffer, MAX_USERNAME_LENGTH);	// ** 4
 
 	//Check if user name is unique
 	iterator = c_list->head;
@@ -36,7 +60,7 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	}
 
 	while(!unique_username) {
-		Write(fd, USER_NAME_TAKEN, R_LEN);
+		Write(fd, USER_NAME_TAKEN, R_LEN); // ** 5
 
 		unique_username = 0;
 		bzero(username_buffer, MAX_USERNAME_LENGTH);
@@ -44,7 +68,6 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 		Read(fd, username_buffer, MAX_USERNAME_LENGTH);
 		
 		//Check if user name is unique
-		
 		iterator = c_list->head;
 		while(iterator) {
 			if(strcmp(iterator->username, username_buffer) == 0) {
@@ -53,10 +76,6 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 			}
 		}
 	}
-
-	Write(fd, READY_TO_RECEIVE, R_LEN); 
-	// Get clients port number
-	Read(fd, port_buffer, 5); 
 	
 	// All is well, initialize new user
 	struct client_user *new_user = malloc(sizeof(struct client_user));
@@ -68,7 +87,7 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	strcpy(new_user->ip, client_ip);
 
 	new_user->port_number = malloc(sizeof(char) * strlen(port_buffer) + 1);
-	strcpy(port_buffer, new_user->port_number);
+	strcpy(new_user->port_number, port_buffer);
 
 	new_user->files = malloc(sizeof(struct files_list));
 	new_user->files->head = 0;
@@ -89,7 +108,7 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	}
 	
 	// Send confirmation to client
-	Write(fd, USER_NAME_REGISTERED, R_LEN);
+	Write(fd, USER_NAME_REGISTERED, R_LEN); // ** 5
 }
 
 void unregisterAccount(int fd, struct sockaddr_in *client_addr, 
@@ -188,22 +207,36 @@ void listUsersAndFiles(int fd, struct clients_list *c_list) {
 
 void addFileInfo(int fd, struct clients_list *c_list,
 	struct sockaddr_in *client_addr) {
-	int ip_found = 0;
+	int user_found = 0;
+	char port_buffer[6];
 	char* client_ip = inet_ntoa(client_addr->sin_addr);
 	struct client_user *client = c_list->head;
 	char file_path[MAX_PATH_LENGTH];
 
 	Write(fd, READY_TO_RECEIVE, R_LEN);
+	// Get port number to check for uniqueness
+	Read(fd, port_buffer, 6);
 
 	while(client) {
+		printf("client->ip : %s\n", client->ip);
+		printf("client_ip : %s\n", client_ip);
+		printf("client->port_number : %s\n", client->port_number);
+		printf("port_buffer : %s\n", port_buffer);
 		if(strcmp(client->ip, client_ip) == 0) {
-			ip_found = 1;
-			break;
+			if(strcmp(client->port_number, port_buffer) == 0) {
+				user_found = 1;
+				break;
+			}
 		}
+		if(user_found)
+			break;
+
 		client = client->next;
 	}
 
-	if(!ip_found) {
+	printf("user found = %i\n", user_found);
+
+	if(!user_found) {
 		Write(fd, IP_DOES_NOT_EXIST, R_LEN);
 	}
 	else {
@@ -237,6 +270,8 @@ void addFileInfo(int fd, struct clients_list *c_list,
 		struct file_node *new_file = malloc(sizeof(struct file_node));
 		new_file->file_name = malloc(strlen(file_name) + 1);
 		strcpy(new_file->file_name, file_name);
+
+		printf("new file = %s\n", new_file->file_name);
 
 		new_file->path = malloc(strlen(file_path) + 1);
 		strcpy(new_file->path, file_path);
@@ -348,5 +383,26 @@ void *handleClientCommand(void * args_list) {
 	else if(strcmp(buffer, DOWNLOAD_FILE) == 0) {
 		enableDownloadFile(fd, client_addr, c_list);
 	}
+
+	struct client_user *client = c_list->head;
+	while(client) {
+		printf("name : %s\n", client->username);
+		printf("ip : %s\n", client->ip);
+		printf("port : %s\n\n", client->port_number);
+		client = client->next;
+	}
+
 	return;
 }
+
+
+
+
+
+
+
+
+
+
+
+
