@@ -71,7 +71,6 @@ void *serverRoutine(void *port_buffer) {
 	// Initialize socket
 	int socket_fd, new_socket;
 	int port_number = atoi(*port_ptr);
-	printf("port_number = %i\n", port_number);
 
 	struct sockaddr_in  server_addr, client_addr;
 	int client_addr_length = sizeof(client_addr);
