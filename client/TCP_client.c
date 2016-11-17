@@ -14,16 +14,14 @@
 #include "client_util/util.h"
 
 int main(int argc, char* argv[]) {
-	if (argc < 3) {
+	if (argc < 2) {
 		perror("Missing hostname and/or port number\n");
 		exit(1);
 	}
-	char* port_buffer;
+	char port_buffer[6];
 	void* thread_arg;
 
-	printf("\n\nEnter a port number to accept peer requests from :");
-	port_buffer = getLine();
-	thread_arg = port_buffer;
+	thread_arg = &port_buffer;
 
 	int socket_fd;
 	int server_port_number = atoi(argv[2]);
@@ -31,6 +29,7 @@ int main(int argc, char* argv[]) {
 	
 	int length, read_length;
 
+	int registered = 0;
 	int deregistering = 0;
 	
 	// Initialize thread
@@ -42,30 +41,39 @@ int main(int argc, char* argv[]) {
 	// Set thread as detached
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	
+	PORT_INIT = 0;
 	pthread_create(&tid, &attr, &serverRoutine, thread_arg);
 	
+	// Initialize socket address
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(server_port_number);
+	if(inet_aton(getIP(argv[1]), &server_addr.sin_addr.s_addr) == 0) {
+		perror("Error initializing server address\n");
+		exit(1);
+	}
+
 	while(!deregistering) {
 		socket_fd = socket(AF_INET, SOCK_STREAM, 0);	
-
-		// Initialize socket address
-		server_addr.sin_family = AF_INET;
-		server_addr.sin_port = htons(server_port_number);
-		if(inet_aton(getIP(argv[1]), &server_addr.sin_addr.s_addr) == 0) {
-			perror("Error initializing server address\n");
-			exit(1);
-		}
-
-		// Connect socket
 		connect(socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
+		if(!registered) {
+			registerUser(socket_fd, &port_buffer);
+			registered = 1;
+
+			close(socket_fd);
+
+			socket_fd = socket(AF_INET, SOCK_STREAM, 0);	
+			connect(socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+		}
+		
 		printMenu();
 
-		handleCommand(socket_fd, &deregistering, &port_buffer);
+		handleCommand(socket_fd, &registered ,&deregistering, &port_buffer);
+
 
 		close(socket_fd);
 	}
 
-	close(socket_fd);
 	return 0;
 }
 

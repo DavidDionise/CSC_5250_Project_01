@@ -47,9 +47,13 @@ void uploadFileInfo(int fd, char** port_buffer);
 // Download file from peer
 void downloadFile(int fd);
 
+// Quit program
+void quit(int fd, char* port);
+
 // Gets the command from the user and 
 //	executes program accordingly
-void handleCommand(int fd, int *deregistering, char** port_buffer);
+void handleCommand(int fd, int *registered, int *deregistering, 
+	char** port_buffer);
 
 
 #endif

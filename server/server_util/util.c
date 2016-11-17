@@ -48,7 +48,6 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	char username_buffer[MAX_USERNAME_LENGTH];  
 
 	Read(fd, username_buffer, MAX_USERNAME_LENGTH);	// ** 4
-
 	//Check if user name is unique
 	iterator = c_list->head;
 	while(iterator) {
@@ -109,59 +108,6 @@ void registerAccount(int fd, struct sockaddr_in *client_addr,
 	
 	// Send confirmation to client
 	Write(fd, USER_NAME_REGISTERED, R_LEN); // ** 5
-}
-
-void unregisterAccount(int fd, struct sockaddr_in *client_addr, 
-	struct clients_list *c_list) {
-
-	int ip_exists = 0;
-	char*client_ip = inet_ntoa(client_addr->sin_addr);
-	struct client_user *iterator, *iterator_trailer;
-
-	iterator = c_list->head;
-
-	while(iterator) {
-		if(strcmp(iterator->ip, client_ip) == 0) {
-			ip_exists = 1;
-
-			if(c_list->head == c_list->tail) { // only one name registered
-				c_list->head = 0;	
-				c_list->tail = 0;
-			}
-			else if(iterator == c_list->head) 
-				c_list->head = iterator->next;
-			else if(iterator == c_list->tail) 
-				c_list->tail = iterator_trailer;
-			else 
-				iterator_trailer->next = iterator->next;
-
-			struct file_node *c_file = iterator->files->head;
-			// Free file data
-			while(c_file) {
-				free(c_file->file_name);
-				free(c_file->path);
-
-				c_file = c_file->next;	
-			}
-
-			free(iterator->username);
-			free(iterator->ip);
-			free(iterator);
-			//TO DO : Free all files
-			
-			break;
-		}
-		else {
-			// increment iterator and iterator_trailer
-			iterator_trailer = iterator;
-			iterator = iterator->next;
-		}
-	}
-
-	if(!ip_exists) 
-		Write(fd, IP_DOES_NOT_EXIST, R_LEN);
-	else
-		Write(fd, USER_UNREGISTERED, R_LEN);
 }
 
 void listUsersAndFiles(int fd, struct clients_list *c_list) {
@@ -230,8 +176,6 @@ void addFileInfo(int fd, struct clients_list *c_list,
 		client = client->next;
 	}
 
-	printf("user found = %i\n", user_found);
-
 	if(!user_found) {
 		Write(fd, IP_DOES_NOT_EXIST, R_LEN);
 	}
@@ -247,6 +191,7 @@ void addFileInfo(int fd, struct clients_list *c_list,
 
 		// Extract name from file path
 		char *file_name = &file_path[file_length - 1];
+		int b_slash_found = 0;
 	
 		// Check if first char is /
 		if(*file_name == '/') { 
@@ -256,23 +201,25 @@ void addFileInfo(int fd, struct clients_list *c_list,
 
 		for(i; i < file_length; i++) {
 			if(*file_name == '/') {
+				b_slash_found = 1;
 				file_name++;
 				break;
 			}
 			else
 				file_name--;
 		}
+
+		if(!b_slash_found)
+			*file_name = file_path;
 	
 		struct file_node *new_file = malloc(sizeof(struct file_node));
+
 		new_file->file_name = malloc(strlen(file_name) + 1);
 		strcpy(new_file->file_name, file_name);
-
-		printf("new file = %s\n", new_file->file_name);
 
 		new_file->path = malloc(strlen(file_path) + 1);
 		strcpy(new_file->path, file_path);
 
-		new_file->path = file_path;
 		new_file->next = 0;
 
 		if(client->files->head == 0) {
@@ -335,16 +282,12 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 		return;
 	}
 
-	Write(fd, client->port_number, 5); // ** 7
+	Write(fd, client->port_number, 6); // ** 7
 	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 8
 	if(strcmp(message_buffer, DATA_RECEIVED) != 0) {
 		perror("Error communicating with client");
 		return;
 	}
-
-	printf("c_file->file_name = %s\n", c_file->file_name);
-	printf("c_file->path = %s\n", c_file->path);
-	printf("length = %s\n", strlen(c_file->path));
 
 	Write(fd, c_file->path, strlen(c_file->path) + 1); // ** 9
 	Read(fd, message_buffer, MAX_SERVER_RESPONSE_LENGTH); // ** 10
@@ -352,7 +295,77 @@ void enableDownloadFile(int fd, struct sockaddr_in *client_addr,
 		perror("Error communicating with client");
 		return;
 	}
+}
 
+void removeUser(int fd, struct sockaddr_in *client_addr, 
+	struct clients_list *c_list) {
+
+	char port_buffer[6];
+	char *client_ip = inet_ntoa(client_addr->sin_addr);
+	int client_found = 0;
+
+	Write(fd, READY_TO_RECEIVE, R_LEN);
+	Read(fd, port_buffer, 6);
+
+	struct client_user *client = c_list->head;
+	struct client_user *client_trailer;
+
+	while(client && !client_found) {
+		if(strcmp(client->ip, client_ip) == 0) {
+			if(strcmp(client->port_number, port_buffer) == 0) {
+				client_found = 1;
+				break;
+			}
+		}
+		client_trailer = client;
+		client = client->next;
+	}
+
+	if(!client_found) {
+		Write(fd, IP_DOES_NOT_EXIST, R_LEN);
+		return;
+	}
+
+	// Free users files
+	struct file_node *c_file = client->files->head;
+	struct file_node *c_file_trailer;
+
+	while(c_file) {
+		free(c_file->file_name);
+		free(c_file->path);
+
+		c_file_trailer = c_file;
+		c_file = c_file->next;
+
+		free(c_file_trailer);
+	}
+
+	// Free user
+	free(client->ip);
+	free(client->port_number);
+	free(client->username);
+	free(client->files);
+
+	if(c_list->head == c_list->tail) {
+		free(client);
+		c_list->head = 0;
+		c_list->tail = 0;
+	}
+	else if(c_list->head == client) {
+		c_list->head = client->next;
+		free(client);
+	}
+	else if(c_list->tail == client) {
+		c_list->tail = client_trailer;
+		client_trailer->next = 0;
+		free(client);
+	}
+	else {
+		client_trailer->next = client->next;
+		free(client);
+	}
+
+	Write(fd, USER_UNREGISTERED, R_LEN);
 }
 
 void *handleClientCommand(void * args_list) {
@@ -372,7 +385,7 @@ void *handleClientCommand(void * args_list) {
 		registerAccount(fd, client_addr, c_list);
 	}
 	else if(strcmp(buffer, UNREGISTER_USER) == 0) {
-		unregisterAccount(fd, client_addr, c_list);
+		removeUser(fd, client_addr, c_list);
 	}
 	else if(strcmp(buffer, LIST_AVAILABLE_FILES) == 0) {
 		listUsersAndFiles(fd, c_list);
@@ -383,26 +396,13 @@ void *handleClientCommand(void * args_list) {
 	else if(strcmp(buffer, DOWNLOAD_FILE) == 0) {
 		enableDownloadFile(fd, client_addr, c_list);
 	}
-
-	struct client_user *client = c_list->head;
-	while(client) {
-		printf("name : %s\n", client->username);
-		printf("ip : %s\n", client->ip);
-		printf("port : %s\n\n", client->port_number);
-		client = client->next;
+	else if(strcmp(buffer, QUIT) == 0) {
+		removeUser(fd, client_addr, c_list);
 	}
+	struct client_user *client = c_list->head;
+	
 
 	return;
 }
-
-
-
-
-
-
-
-
-
-
 
 

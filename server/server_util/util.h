@@ -31,17 +31,17 @@ struct files_list {
 /*** LINKED LIST FOR STORING USERS IN SERVER ***/
 
 struct client_user {
-	char* ip;
-	char* port_number;
-	char* username;
+	char *ip;
+	char *port_number;
+	char *username;
 
 	struct files_list *files;
-	struct client_user * next;
+	struct client_user *next;
 };
 
 struct clients_list {
-	struct client_user* head;
-	struct client_user* tail;
+	struct client_user *head;
+	struct client_user *tail;
 };
 
 /***********************************************/
@@ -49,10 +49,6 @@ struct clients_list {
 
 // Registers a users account into server
 void registerAccount(int fd, struct sockaddr_in *client_addr,
-	struct clients_list *c_list);
-
-// Unregisters a users account
-void unregisterAccount(int fd, struct sockaddr_in *client_addr,
 	struct clients_list *c_list);
 
 // Send users and files back to the system
@@ -64,6 +60,10 @@ void addFileInfo(int fd, struct clients_list *c_list,
 
 // Assist in connecting peers for a download
 void enableDownloadFile(int fd, struct sockaddr_in *client_addr, 
+	struct clients_list *c_list);
+
+// Remove user from system
+void removeUser(int fd, struct sockaddr_in *client_addr, 
 	struct clients_list *c_list);
 
 // Interprets the command entered from a client

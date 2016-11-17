@@ -16,6 +16,7 @@
 #define MAX_DATA_BUFFER_SIZE 512
 #define MAX_USERNAME_LENGTH 64
 #define MAX_PATH_LENGTH 256
+#define MAX_PORT_LENGTH 6
 
 // Struct to pass arguments to pthread routine
 struct args {
@@ -50,6 +51,10 @@ extern const char* ERROR_REGISTERING_USER_NAME;
 extern const char* IP_DOES_NOT_EXIST;
 extern const char* USER_UNREGISTERED;
 extern const char* FILE_DOES_NOT_EXIST;
+
+// Communicates if the port number has been 
+// 	initialized
+int PORT_INIT;
 
 // Wrapper for the read() system call
 void Read(int fd, void * buffer, int bytes);
