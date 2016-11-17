@@ -443,7 +443,7 @@ void handleCommand(int fd, int *registered, int *deregistering,
 		buffer = getLine();
 		
 		if(strcmp(buffer, "unreg") == 0) {
-			quit(fd);
+			quit(fd, *port_buffer);
 			valid_command = 1;
 		}
 		else if(strcmp(buffer, "down") == 0) {
