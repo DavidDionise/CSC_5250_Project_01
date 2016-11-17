@@ -397,7 +397,6 @@ void downloadFile(int fd) {
 			perror("Error reading from peer");
 			exit(1);
 		}
-		printf("in while with : %s\n", download_buffer);
 
 		if(strcmp(download_buffer, END_DATA_BUFFER_SEND) != 0) {
 			Write(file_fd, download_buffer, read_length);
